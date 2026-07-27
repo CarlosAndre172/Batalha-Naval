@@ -3,19 +3,19 @@ package org.example.batalha_naval
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import org.example.batalha_naval.screens.TelaInicial
-import org.example.batalha_naval.screens.TelaTabuleiro
 import org.example.batalha_naval.themes.BatalhaNavalTheme
 import org.example.batalha_naval.themes.FundoGradiente
+import org.example.batalha_naval.screens.*
 
 @Composable
-fun App() {
+fun App( fecharApp: () -> Unit = {} ) {
     BatalhaNavalTheme {
         
         // Aqui tem as rotas (telas) do app.
         val telaInicial = "Menu Inicial"
+        val telaIniciarJogo = "Iniciar Jogo"
         val telaTabuleiro = "Tabuleiro"
-        val telaOpcoes = "Opções"
+        val telaRanking = "Ranking"
         
         val telaAtual = remember { mutableStateOf(telaInicial) }
 
@@ -25,17 +25,23 @@ fun App() {
             
             if (telaAtual.value == telaInicial) {
                 // Passamos o que a tela deve fazer quando os botões forem clicados
-                TelaInicial(
-                    onNovoJogoClick = { telaAtual.value = telaTabuleiro },
-                    onOpcoesClick = { telaAtual.value = telaOpcoes } // Fica pronto para o futuro
+                TelaMenuPrincipal(
+                    onNovoJogoClick = { telaAtual.value = telaIniciarJogo },
+                    onRankingClick = { telaAtual.value = telaRanking },
+                    onSairClick = { fecharApp() } // Fica pronto para o futuro
                 )
-            } else if (telaAtual.value == telaTabuleiro) {
-                TelaTabuleiro(
+            } else if (telaAtual.value == telaIniciarJogo) {
+                TelaIniciarJogo(
+                    onNovoJogoClick = { telaAtual.value = telaTabuleiro },
+                    onVoltarClick = { telaAtual.value = telaInicial }
+                )
+            } else if (telaAtual.value == telaRanking) {
+                TelaRanking(
                     onVoltarClick = { telaAtual.value = telaInicial }
                 )
             }
-            //} else if (telaAtual.value == telaOpcoes) {
-            //    TelaOpcoes()
+            //} else if (telaAtual.value == telaRanking) {
+            //    telaRanking()
             //}
             
         }

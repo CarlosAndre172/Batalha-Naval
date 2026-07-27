@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.example.batalha_naval.BotaoAnimado
+import org.example.batalha_naval.components.BotaoAnimado
 
 @Composable
 fun TelaTabuleiro(onVoltarClick: () -> Unit) {

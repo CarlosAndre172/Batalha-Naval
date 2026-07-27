@@ -10,37 +10,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 
-import org.example.batalha_naval.themes.palettes.AzulOceano
-import org.example.batalha_naval.themes.palettes.AzulProfundo
+import org.example.batalha_naval.themes.palettes.*
 
 @Composable
 fun FundoGradiente(content: @Composable () -> Unit) {
-    // 1. Criamos uma transição infinita (uma animação que nunca para)
+    
     val transicaoInfinita = rememberInfiniteTransition()
 
-    // 2. Animamos um valor de 0 até 1000, que vai e volta (Reverse) a cada 4 segundos
+    // É um um valor de 0 até 1000, que vai e volta (Reverse) a cada 4 segundos
     val deslocamento by transicaoInfinita.animateFloat(
         initialValue = 0f,
         targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
+        animationSpec = infiniteRepeatable( // Esse valor é "quem guia" a animação do fundo. Tipo os frames.
             animation = tween(durationMillis = 4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse // Vai e volta suavemente
+            repeatMode = RepeatMode.Reverse // Vai e volta suavemente.
         )
     )
 
-    // 3. Criamos um "Pincel" Gradiente. As coordenadas mudam com base na animação!
+    // "Pincel" Gradiente. As coordenadas mudam com base na animação.
     val gradienteAnimado = Brush.linearGradient(
-        colors = listOf(AzulProfundo, AzulOceano),
+        colors = listOf(azulProfundo, azulOceano),
         start = Offset(0f, deslocamento),
         end = Offset(1000f, 1000f - deslocamento)
     )
 
-    // 4. Usamos o Box para colocar esse gradiente no fundo, e o conteúdo (content) por cima
+    // Box para colocar esse gradiente no fundo, e o conteúdo (content) por cima.
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(brush = gradienteAnimado)
     ) {
-        content() // Aqui dentro vai ser desenhado o menu e o tabuleiro
+        content() // Aqui dentro vai ser desenhado o menu e o tabuleiro.
     }
 }
