@@ -1,9 +1,11 @@
-class Jogador(val nome: String) {
+import strategy.*;
 
-    val tabuleiro = Tabuleiro()
+class Jogador(val nome: String, tipoMapa: TipoMapa) {
+
+    val tabuleiro = Tabuleiro(tipoMapa);
 
     init {
-        tabuleiro.gerarNavios()
+        tabuleiro.gerarNavios();
     }
 
 }
