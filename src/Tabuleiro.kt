@@ -8,29 +8,48 @@ class Tabuleiro(private val tipoMapa: TipoMapa) {
     private val matriz = Array(tamanho) { Array(tamanho) { 0 } };
 
     fun gerarNavios() {
-        for (tamanhoNavio in tipoMapa.navios) {
-            adicionarNavio(tamanhoNavio);
+        var posicionado: Boolean;
+
+        do {
+            limpar();
+            posicionado = true;
+
+            for (tamanhoNavio in tipoMapa.navios) {
+                if (!adicionarNavio(tamanhoNavio)) {
+                    posicionado = false;
+                    break;
+                }
+            }
+        } while (!posicionado);
+    }
+
+    private fun limpar() {
+        for (linha in matriz) {
+            linha.fill(0);
         }
     }
 
-    private fun adicionarNavio(tamanhoNavio: Int) {
-        val horizontal = Random.nextBoolean();
+    private fun adicionarNavio(tamanhoNavio: Int): Boolean {
+        val maxTentativas = tamanho * tamanho * 20;
 
-        var i: Int;
-        var j: Int;
+        for (tentativa in 0 until maxTentativas) {
+            val horizontal = Random.nextBoolean();
+            val i = Random.nextInt(tamanho);
+            val j = Random.nextInt(tamanho);
 
-        do {
-            i = Random.nextInt(tamanho);
-            j = Random.nextInt(tamanho);
-        } while (!podeAdicionarNavio(i, j, tamanhoNavio, horizontal));
-
-        for (k in 0 until tamanhoNavio) {
-            if (horizontal) {
-                matriz[i][j + k] = 1;
-            } else {
-                matriz[i + k][j] = 1;
+            if (podeAdicionarNavio(i, j, tamanhoNavio, horizontal)) {
+                for (k in 0 until tamanhoNavio) {
+                    if (horizontal) {
+                        matriz[i][j + k] = 1;
+                    } else {
+                        matriz[i + k][j] = 1;
+                    }
+                }
+                return true;
             }
         }
+
+        return false;
     }
 
     private fun podeAdicionarNavio(i: Int, j: Int, tamanhoNavio: Int, horizontal: Boolean): Boolean {

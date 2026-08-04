@@ -2,9 +2,9 @@ import strategy.*;
 
 fun main() {
 
-    val tipoMapa = escolherTipoDeMapa();
+    val tipoDeMapa = escolherTipoDeMapa();
 
-    val jogo = Jogo(tipoMapa);
+    val jogo = Jogo(tipoDeMapa);
     jogo.iniciar();
 
 }

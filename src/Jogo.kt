@@ -45,9 +45,28 @@ class Jogo(private val tipoMapa: TipoMapa) {
             }
 
             if (!computador.tabuleiro.existeNavio()) {
-                println("Parabéns! Você venceu!");
+                println("\nParabéns! Você afundou todos os navios do computador e venceu!");
+                jogando = false;
+                break;
+            }
+
+            // Turno do computador (protótipo: ataca posições aleatórias, sem repetir)
+            val (linhaComputador, colunaComputador) = computador.escolherAtaqueAleatorio();
+
+            println("\nO computador atacou a posição (${linhaComputador + 1}, ${colunaComputador + 1})...");
+
+            if (jogador.tabuleiro.atacar(linhaComputador, colunaComputador)) {
+                println("O computador acertou um dos seus navios!");
+            } else {
+                println("O computador errou!");
+            }
+
+            if (!jogador.tabuleiro.existeNavio()) {
+                println("\nO computador afundou todos os seus navios. Você perdeu!");
                 jogando = false;
             }
+
+            println();
         }
     }
 
