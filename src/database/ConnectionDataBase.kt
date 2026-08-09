@@ -13,7 +13,7 @@ class ConnectionDataBase {
             return DriverManager.getConnection(
                 "jdbc:mysql://localhost/batalha_navalbd",
                 "root",
-                "aB0rt4d0@_@" // senha do seu sgbd
+                "" // senha do seu sgbd
             )
         } catch (e: Exception) {
             // Se falhar, interrompe o programa mostrando o erro real
