@@ -1,20 +1,42 @@
 package service
 
-import model.Jogador
-import model.Partida
-import repository.JogadorRepository
-import repository.PartidaRepository
+import strategy.Lagoa
+import strategy.Oceano
+import strategy.Poca
+import strategy.TipoMapa
 
 class VerificacaoPartida {
-    fun finalizarPartida(partida: Partida){
-        if(partida.pontuacao >= 0 && partida.tempo > 0){ // mudar para verificacao de termino da partida apos a criacao da flag
-            val jogador = partida.jogador
-            val id = jogador.
-            val partidaRepository = PartidaRepository()
-            partidaRepository.salvarPartida(partida, id)
-        }
-        else {
+    fun calcularScoreFinal(acertos: Int, naviosVivos: Int, tempoSegundos: Int, tabuleiro: TipoMapa): Int {
 
+        //peso do acerto de cada tabuleiro
+        val pesoAcerto = when (tabuleiro) {
+            is Poca -> 50
+            is Lagoa -> 100
+            is Oceano -> 150
+            else -> 0
+        }
+
+        // bonus para navio que nao foi afundado
+        val pesoSobrevivencia = when (tabuleiro) {
+            is Poca -> 100
+            is Lagoa -> 200
+            is Oceano -> 300
+            else -> 0
+        }
+
+        val penalidadePorSegundo = 2 // penalidade por tempo
+        val pontosAtaque = acertos * pesoAcerto
+        val bonusDefesa = naviosVivos * pesoSobrevivencia
+        val pontosPerdidos = tempoSegundos * penalidadePorSegundo
+        val scoreFinal = (pontosAtaque + bonusDefesa) - pontosPerdidos
+
+        // garante que o score sera sempre positivo
+        return if (scoreFinal > 0) {
+            scoreFinal
+        } else {
+            0
         }
     }
+
+
 }
