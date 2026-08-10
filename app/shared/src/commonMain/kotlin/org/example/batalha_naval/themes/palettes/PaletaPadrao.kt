@@ -14,6 +14,9 @@ internal val brancoTexto = Color(0xFFFFFFFF)
 internal val branco = Color(0xFFF5F5DC)
 internal val vermelho = Color(0xFFFF0000)
 internal val cinza  = Color(0xFF808080)
+// Cores do tabuleiro:
+internal val laranjaAcerto = Color(0xFFE67E22)   // Casa onde tem uma embarcação.
+internal val vermelhoAfundado = Color(0xFF922B21) // Embarcação destruída por completo.
 
 
 

@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import org.example.batalha_naval.components.*
 import org.example.batalha_naval.themes.palettes.*
+import org.example.batalha_naval.jogo.TipoMapa
 
 import androidx.compose.ui.graphics.Color
 
@@ -20,7 +21,7 @@ import androidx.compose.ui.graphics.Color
 // A tela não sabe o que acontece quando clica, ela só avisa o App.kt.
 @Composable
 fun TelaIniciarJogo(
-    onNovoJogoClick: () -> Unit,
+    onIniciarPartida: (TipoMapa) -> Unit,
     onVoltarClick: () -> Unit
 ) {
 
@@ -112,7 +113,8 @@ fun TelaIniciarJogo(
         )
 
         Button (
-            onClick = { }, 
+            // Converte o texto do botão selecionado ("Poça", "Lagoa"...) no tipo de mar e começa a partida.
+            onClick = { onIniciarPartida(TipoMapa.porNome(tabuleiroSelecionado)) },
             modifier = Modifier.padding(top = 16.dp)
             ) {
                 Text("START")
