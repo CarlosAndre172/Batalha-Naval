@@ -3,9 +3,16 @@ package org.example.batalha_naval
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import org.example.batalha_naval.themes.BatalhaNavalTheme
 import org.example.batalha_naval.themes.FundoGradiente
 import org.example.batalha_naval.screens.*
+import org.example.batalha_naval.themes.palettes.*
+import org.example.batalha_naval.jogo.TipoMapa
+
+import org.example.batalha_naval.components.NavegadorAnimado
+import org.example.batalha_naval.components.DirecaoAnimacao
 
 @Composable
 fun App( fecharApp: () -> Unit = {} ) {
@@ -19,55 +26,58 @@ fun App( fecharApp: () -> Unit = {} ) {
         
         val telaAtual = remember { mutableStateOf(telaInicial) }
 
-        // Colocamos o fundo animado POR FORA das telas. 
-        // Assim, a animação da água não reinicia quando você troca de tela!
+        // Guarda o mar escolhido na tela de início (Poça 5x5, Lagoa 8x8 ou Oceano 10x10).
+        val mapaEscolhido = remember { mutableStateOf(TipoMapa.POCA) }
+        
+        // Dita a direção do efeito de transição entre telas (de cima para baixo ou de baixo para cima).
+        var direcaoAnimacao by remember { mutableStateOf(DirecaoAnimacao.BAIXO_PARA_CIMA) }
+
         FundoGradiente {
             
-            if (telaAtual.value == telaInicial) {
-                // Passamos o que a tela deve fazer quando os botões forem clicados
-                TelaMenuPrincipal(
-                    onNovoJogoClick = { telaAtual.value = telaIniciarJogo },
-                    onRankingClick = { telaAtual.value = telaRanking },
-                    onSairClick = { fecharApp() } // Fica pronto para o futuro
-                )
-            } else if (telaAtual.value == telaIniciarJogo) {
-                TelaIniciarJogo(
-                    onNovoJogoClick = { telaAtual.value = telaTabuleiro },
-                    onVoltarClick = { telaAtual.value = telaInicial }
-                )
-            } else if (telaAtual.value == telaRanking) {
-                TelaRanking(
-                    onVoltarClick = { telaAtual.value = telaInicial }
-                )
+            NavegadorAnimado(
+                telaAlvo = telaAtual.value,
+                corQuadradoA = azulClaro,
+                corQuadradoB = roxoClaro,
+                corQuadradoC = azulOceano,
+                
+                direcao = direcaoAnimacao 
+            ) { telaAtiva ->
+                
+                if (telaAtiva == telaInicial) {
+                    TelaMenuPrincipal(
+                        onNovoJogoClick = { 
+                            direcaoAnimacao = DirecaoAnimacao.CIMA_PARA_BAIXO
+                            telaAtual.value = telaIniciarJogo 
+                        },
+                        onRankingClick = { 
+                            direcaoAnimacao = DirecaoAnimacao.BAIXO_PARA_CIMA
+                            telaAtual.value = telaRanking 
+                        },
+                        onSairClick = { fecharApp() }
+                    )
+                } else if (telaAtiva == telaIniciarJogo) {
+                    TelaIniciarJogo(
+                        onIniciarPartida = { tipoMapa ->
+                            mapaEscolhido.value = tipoMapa
+                            direcaoAnimacao = DirecaoAnimacao.BAIXO_PARA_CIMA
+                            telaAtual.value = telaTabuleiro
+                        },
+                        onVoltarClick = { 
+                            direcaoAnimacao = DirecaoAnimacao.BAIXO_PARA_CIMA
+                            telaAtual.value = telaInicial 
+                        }
+                    )
+                } else if (telaAtiva == telaTabuleiro) {
+                    TelaTabuleiro(
+                        tipoMapa = mapaEscolhido.value,
+                        onVoltarClick = { telaAtual.value = telaIniciarJogo }
+                    )
+                } else if (telaAtiva == telaRanking) {
+                    TelaRanking(
+                        onVoltarClick = { telaAtual.value = telaInicial }
+                    )
+                }
             }
-            //} else if (telaAtual.value == telaRanking) {
-            //    telaRanking()
-            //}
-            
         }
     }
 }
-
-/*
-fun TelaTabuleiro() {
-    FundoGradiente {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Tabuleiro",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            BotaoAnimado(texto = "Voltar") {
-                telaAtual.value = telaInicial
-            }
-        }
-    }
-}*/

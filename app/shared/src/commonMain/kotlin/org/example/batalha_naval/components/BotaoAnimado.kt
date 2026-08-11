@@ -21,6 +21,7 @@ fun BotaoAnimado(
         texto: String, 
         corFundo: Color = MaterialTheme.colorScheme.primary, 
         corTexto: Color = MaterialTheme.colorScheme.onPrimary,
+        habilitado: Boolean = true, // Quando é false, o botão fica apagado e não responde ao clique.
         modifier: Modifier = Modifier.padding(8.dp),
         onClick: () -> Unit
     ) {
@@ -35,11 +36,14 @@ fun BotaoAnimado(
 
         Button(
         onClick = onClick,
+        enabled = habilitado,
         interactionSource = interactionSource,
         // Cores do botão e do texto, que podem ser passadas como parâmetros.
         colors = ButtonDefaults.buttonColors(
             containerColor = corFundo,
-            contentColor = corTexto
+            contentColor = corTexto,
+            disabledContainerColor = corFundo.copy(alpha = 0.5f),
+            disabledContentColor = corTexto.copy(alpha = 0.7f)
         ),
         // Animação da escala do botão
         modifier = modifier.scale(scale)
