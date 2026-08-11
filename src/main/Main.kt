@@ -1,49 +1,53 @@
 package main
 
 import database.ConnectionDataBase
-import model.Jogador
-import model.Partida
-import model.TipoTabuleiro
-import repository.JogadorRepository
 import repository.PartidaRepository
-import kotlin.Int
+import strategy.Lagoa
+import strategy.Oceano
+import strategy.Poca
+import strategy.TipoMapa
+import testeJogo.Jogo
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 fun main() {
-    println("Testando a conexão com o banco de dados...")
 
-    try {
-        // Cria a fábrica que você construiu
-        val database = ConnectionDataBase()
+    val tipoDeMapa = escolherTipoDeMapa();
 
-        // Pede a conexão para o banco
-        val conexao = database.criaConexao()
+    print("\nDigite o seu nome: ");
+    val nomeJogador = readln().ifBlank { "Misterioso" }
 
-        println("Conexão realizada com sucesso!")
+    val jogo = Jogo(tipoDeMapa, nomeJogador);
+    jogo.iniciar();
 
-        // Fecha a conexão após o teste
-        conexao.close()
+    // testando a busca do ranking
+    val database = ConnectionDataBase()
+    val repositorio = PartidaRepository(database)
+    val ranking = repositorio.rankingPorMapa(tipoDeMapa.nome)
 
-    } catch (e: Exception) {
-        println("Não foi possível conectar.")
-        e.printStackTrace()
+    if (ranking.isEmpty()) {
+        println("Ainda não há jogadores no ranking deste mapa.")
+    } else {
+        for ((posicao, item) in ranking.withIndex()) {
+            println("${posicao + 1}º Lugar | Capitão: ${item.nomeJogador} | Pontos: ${item.pontuacao} | Tempo: ${item.tempo}s")
+        }
     }
 
-    val jogador = Jogador(
-        nome = "Fabio"
-    )
+}
 
-    val repositorio = JogadorRepository()
-    repositorio.salvarJogador(jogador)
+private fun escolherTipoDeMapa(): TipoMapa {
 
-    val partida = Partida(
-        jogador = jogador,
-        pontuacao = 600,
-        tempo = 200,
-        tabuleiro = TipoTabuleiro.OCEANO
-    )
+    println("Escolha o tipo de mapa:");
+    println("1 - Poça  (5x5,  3 navios: 1 grande, 1 médio, 1 pequeno)");
+    println("2 - Lagoa (8x8,  5 navios: 1 grande, 2 médios, 2 pequenos)");
+    println("3 - Oceano(10x10, 7 navios: 2 grandes, 2 médios, 3 pequenos)");
 
-    val repo = PartidaRepository()
-    repo.salvarPartida(partida, 1)
+    while (true) {
+        print("Opção: ");
+
+        when (readln().toIntOrNull()) {
+            1 -> return Poca();
+            2 -> return Lagoa();
+            3 -> return Oceano();
+            else -> println("Opção inválida, tente novamente.");
+        }
+    }
 }

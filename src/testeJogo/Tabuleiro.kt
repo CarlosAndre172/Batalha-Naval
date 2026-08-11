@@ -1,3 +1,5 @@
+package testeJogo
+
 import kotlin.random.Random
 import strategy.*;
 
@@ -80,8 +82,11 @@ class Tabuleiro(private val tipoMapa: TipoMapa) {
 
     fun atacar(linha: Int, coluna: Int): Boolean {
         if (matriz[linha][coluna] == 1) {
-            matriz[linha][coluna] = 0;
+            matriz[linha][coluna] = 3; // acertou
             return true;
+        }
+        else if (matriz[linha][coluna] == 0) {
+            matriz[linha][coluna] = 2 // errou
         }
         return false;
     }
@@ -98,12 +103,33 @@ class Tabuleiro(private val tipoMapa: TipoMapa) {
         return false;
     }
 
+    fun contarNaviosVivos(): Int {
+        var blocosIntactos = 0
+
+        for (linha in matriz) {
+            for (valor in linha) {
+                if (valor == 1) {
+                    blocosIntactos++
+                }
+            }
+        }
+
+        return blocosIntactos
+    }
+
     fun getTamanho() = tamanho;
 
     fun imprimir() {
         for (linha in matriz) {
             for (valor in linha) {
-                print("$valor ");
+                val simbolo = when (valor) {
+                    0 -> "0" // agua
+                    1 -> "1" // navio intacto
+                    2 -> "X" // errou a posicao
+                    3 -> "!" // acertou navio
+                    else -> "?"
+                }
+                print("$simbolo ");
             }
             println();
         }

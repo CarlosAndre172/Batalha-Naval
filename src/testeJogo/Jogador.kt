@@ -3,7 +3,7 @@ import strategy.*;
 
 class Jogador(val nome: String, tipoMapa: TipoMapa) {
 
-    val tabuleiro = Tabuleiro(tipoMapa);
+    val tabuleiro = testeJogo.Tabuleiro(tipoMapa);
 
     private val tamanho = tipoMapa.tamanho;
 
