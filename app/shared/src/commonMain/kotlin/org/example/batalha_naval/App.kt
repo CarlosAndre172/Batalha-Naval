@@ -28,7 +28,10 @@ fun App( fecharApp: () -> Unit = {} ) {
 
         // Guarda o mar escolhido na tela de início (Poça 5x5, Lagoa 8x8 ou Oceano 10x10).
         val mapaEscolhido = remember { mutableStateOf(TipoMapa.POCA) }
-        
+
+        // Nome digitado na tela de início, usado pra salvar o score no servidor.
+        val nomeJogador = remember { mutableStateOf("") }
+
         // Dita a direção do efeito de transição entre telas (de cima para baixo ou de baixo para cima).
         var direcaoAnimacao by remember { mutableStateOf(DirecaoAnimacao.BAIXO_PARA_CIMA) }
 
@@ -57,19 +60,21 @@ fun App( fecharApp: () -> Unit = {} ) {
                     )
                 } else if (telaAtiva == telaIniciarJogo) {
                     TelaIniciarJogo(
-                        onIniciarPartida = { tipoMapa ->
+                        onIniciarPartida = { tipoMapa, nome ->
                             mapaEscolhido.value = tipoMapa
+                            nomeJogador.value = nome
                             direcaoAnimacao = DirecaoAnimacao.BAIXO_PARA_CIMA
                             telaAtual.value = telaTabuleiro
                         },
-                        onVoltarClick = { 
+                        onVoltarClick = {
                             direcaoAnimacao = DirecaoAnimacao.BAIXO_PARA_CIMA
-                            telaAtual.value = telaInicial 
+                            telaAtual.value = telaInicial
                         }
                     )
                 } else if (telaAtiva == telaTabuleiro) {
                     TelaTabuleiro(
                         tipoMapa = mapaEscolhido.value,
+                        nomeJogador = nomeJogador.value,
                         onVoltarClick = { telaAtual.value = telaIniciarJogo }
                     )
                 } else if (telaAtiva == telaRanking) {

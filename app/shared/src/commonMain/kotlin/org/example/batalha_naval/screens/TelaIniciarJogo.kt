@@ -21,13 +21,12 @@ import androidx.compose.ui.graphics.Color
 // A tela não sabe o que acontece quando clica, ela só avisa o App.kt.
 @Composable
 fun TelaIniciarJogo(
-    onIniciarPartida: (TipoMapa) -> Unit,
+    onIniciarPartida: (TipoMapa, String) -> Unit,
     onVoltarClick: () -> Unit
 ) {
 
     var tabuleiroSelecionado by remember { mutableStateOf("Poça") } // Poça é o valor padrão do modo escolhido.
-    var powerUpSelecionado by remember { mutableStateOf("Bombardeio") }
-    
+
     PainelDeConteudo(largura = 0.6f, altura = 0.9f, paddingInternoInferior = 8.dp) {
         Text(
             "Modo de Jogo", 
@@ -52,27 +51,17 @@ fun TelaIniciarJogo(
         }
 
         Text(
-            "Powerup", 
+            "Powerup",
             fontSize = 16.sp,
             color = azulProfundo,
             fontWeight = FontWeight.Bold
         )
-        // Segunda linha de botões
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            val powerups = listOf("Bombardeio", "Bomba")
-            
-            powerups.forEach { powerup ->
-                BotaoAnimado(
-                    texto = powerup,
-                    // Lógica para mudar a cor se o botão for o selecionado
-                    onClick = { powerUpSelecionado = powerup },
-                    corFundo = if (powerUpSelecionado == powerup) azulOceano else cinza
-                )
-            }
-        }
+        // Os dois power-ups já vêm disponíveis em toda partida, não há mais escolha aqui.
+        Text(
+            "Bomba e Bombardeio disponíveis (1 uso cada)",
+            fontSize = 14.sp,
+            color = azulProfundo
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -114,7 +103,8 @@ fun TelaIniciarJogo(
 
         Button (
             // Converte o texto do botão selecionado ("Poça", "Lagoa"...) no tipo de mar e começa a partida.
-            onClick = { onIniciarPartida(TipoMapa.porNome(tabuleiroSelecionado)) },
+            onClick = { onIniciarPartida(TipoMapa.porNome(tabuleiroSelecionado), nomePlayer) },
+            enabled = nomePlayer.isNotBlank(),
             modifier = Modifier.padding(top = 16.dp)
             ) {
                 Text("START")

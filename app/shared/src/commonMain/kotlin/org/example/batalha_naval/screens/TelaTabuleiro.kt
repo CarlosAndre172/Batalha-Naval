@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -23,31 +24,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlin.time.TimeSource
 
 import org.example.batalha_naval.components.*
 import org.example.batalha_naval.jogo.*
+import org.example.batalha_naval.jogo.bot.BotAdversario
+import org.example.batalha_naval.rede.ApiClient
 import org.example.batalha_naval.themes.palettes.*
 
 @Composable
 fun TelaTabuleiro(
     tipoMapa: TipoMapa = TipoMapa.OCEANO,
+    nomeJogador: String = "",
     onVoltarClick: () -> Unit
 ) {
     // Tabuleiro do inimigo: é nele que o jogador atira.
     val tabuleiroInimigo = remember(tipoMapa) { EstadoTabuleiro(tipoMapa) }
 
-    // Tabuleiro do jogador: por enquanto só serve pra mostrar a sua frota na caixinha lateral.
-    //! Quando o inimigo souber atirar, é aqui que os tiros dele vão cair.
+    // Tabuleiro do jogador: é nele que o bot atira.
     val tabuleiroJogador = remember(tipoMapa) { EstadoTabuleiro(tipoMapa) }
+
+    // De quem é a vez de atirar. Também decide qual tabuleiro aparece em foco na tela.
+    var turno by remember(tipoMapa) { mutableStateOf(Turno.JOGADOR) }
+    val bot = remember(tipoMapa) { BotAdversario() }
 
     var pontos by remember(tipoMapa) { mutableStateOf(0) }
     var combo by remember(tipoMapa) { mutableStateOf(0) }
+    var totalAcertosJogador by remember(tipoMapa) { mutableStateOf(0) }
     var powerUpAtivo by remember(tipoMapa) { mutableStateOf<PowerUp?>(null) }
 
     // Quantas vezes ainda dá pra usar cada power-up nessa partida.
     val usosDePowerUp = remember(tipoMapa) {
         mutableStateMapOf(PowerUp.BOMBA to 1, PowerUp.BOMBARDEIO to 1)
     }
+
+    val inicioPartida = remember(tipoMapa) { TimeSource.Monotonic.markNow() }
+    var scoreEnviado by remember(tipoMapa) { mutableStateOf(false) }
 
     // Tabuleiro pequeno = casas maiores, pra ocupar mais ou menos o mesmo espaço na tela.
     val tamanhoCelula = when (tipoMapa.tamanho) {
@@ -68,6 +81,8 @@ fun TelaTabuleiro(
 
     // É esta função que o onRelease do botãozinho chama.
     fun atirar(linha: Int, coluna: Int) {
+        if (turno != Turno.JOGADOR) return
+
         var acertouAlgumaCoisa = false
 
         alvosDoTiro(linha, coluna).forEach { (l, c) ->
@@ -75,11 +90,13 @@ fun TelaTabuleiro(
                 ResultadoTiro.ACERTOU -> {
                     acertouAlgumaCoisa = true
                     combo++
+                    totalAcertosJogador++
                     pontos += 100 * multiplicadorDoCombo(combo)
                 }
                 ResultadoTiro.AFUNDOU -> {
                     acertouAlgumaCoisa = true
                     combo++
+                    totalAcertosJogador++
                     pontos += 250 * multiplicadorDoCombo(combo)
                 }
                 ResultadoTiro.AGUA, ResultadoTiro.JA_ATACADA -> { /* não ganha nada */ }
@@ -92,9 +109,45 @@ fun TelaTabuleiro(
         }
         powerUpAtivo = null
 
-        // Errar o tiro acaba com o turno do jogador, então o combo zera (e a caixinha some).
-        if (!acertouAlgumaCoisa) combo = 0
+        // Errar o tiro passa a vez pro bot; o combo zera (e a caixinha some).
+        if (!acertouAlgumaCoisa) {
+            combo = 0
+            turno = Turno.BOT
+        }
     }
+
+    // Enquanto for a vez do bot, ele atira sozinho no tabuleiro do jogador até errar.
+    LaunchedEffect(turno, tipoMapa) {
+        while (turno == Turno.BOT && !tabuleiroJogador.acabou() && !tabuleiroInimigo.acabou()) {
+            delay(1000)
+            val (linha, coluna) = bot.escolherTiro(tipoMapa.tamanho)
+            val resultado = tabuleiroJogador.atacar(linha, coluna)
+            bot.registrarResultado(linha to coluna, resultado, tipoMapa.tamanho)
+
+            if (resultado == ResultadoTiro.AGUA) {
+                turno = Turno.JOGADOR
+            }
+        }
+    }
+
+    // Ao afundar a frota inimiga, manda o resultado da partida pro servidor (uma vez só).
+    LaunchedEffect(tabuleiroInimigo.acabou()) {
+        if (tabuleiroInimigo.acabou() && !scoreEnviado) {
+            scoreEnviado = true
+            val tempoSegundos = inicioPartida.elapsedNow().inWholeSeconds.toInt()
+            val score = calcularScoreFinal(
+                acertos = totalAcertosJogador,
+                naviosVivos = tabuleiroJogador.celulasDeNaviosRestantes(),
+                tempoSegundos = tempoSegundos,
+                tipoMapa = tipoMapa
+            )
+            ApiClient.salvarPartida(nomeJogador, score, tempoSegundos, tipoMapa)
+        }
+    }
+
+    // Os tabuleiros se intercalam: na vez do jogador, mostra o mar do inimigo pra
+    // atacar; na vez do bot, mostra o próprio mar recebendo os tiros dele.
+    val tabuleiroEmFoco = if (turno == Turno.JOGADOR) tabuleiroInimigo else tabuleiroJogador
 
     Row(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -122,18 +175,26 @@ fun TelaTabuleiro(
                 color = brancoTexto
             )
 
+            Text(
+                text = if (turno == Turno.JOGADOR) "🎯 Sua vez!" else "⏳ Vez do inimigo...",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = brancoTexto
+            )
+
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Moldura de madeira em volta da grade de botões.
+            // Moldura de madeira em volta da grade de botões. Alterna entre o mar do
+            // inimigo (vez do jogador) e o mar do jogador (vez do bot).
             Surface(
                 color = marromMadeira,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 TabuleiroNaval(
-                    tabuleiro = tabuleiroInimigo,
+                    tabuleiro = tabuleiroEmFoco,
                     modifier = Modifier.padding(8.dp),
                     tamanhoCelula = tamanhoCelula,
-                    habilitado = !tabuleiroInimigo.acabou(),
+                    habilitado = turno == Turno.JOGADOR && !tabuleiroInimigo.acabou(),
                     onTiro = { linha, coluna -> atirar(linha, coluna) }
                 )
             }
@@ -142,7 +203,14 @@ fun TelaTabuleiro(
 
             if (tabuleiroInimigo.acabou()) {
                 Text(
-                    text = "🏴 Frota inimiga afundada!",
+                    text = "🏴 Frota inimiga afundada! Você venceu!",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = brancoTexto
+                )
+            } else if (tabuleiroJogador.acabou()) {
+                Text(
+                    text = "☠️ Sua frota afundou! Você perdeu.",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = brancoTexto

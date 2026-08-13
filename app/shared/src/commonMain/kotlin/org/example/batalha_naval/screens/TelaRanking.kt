@@ -20,21 +20,33 @@ import org.example.batalha_naval.components.PainelDeConteudo
 import org.example.batalha_naval.components.BotaoAnimado
 // Importando as cores do seu tema
 import org.example.batalha_naval.themes.palettes.*
+import org.example.batalha_naval.jogo.TipoMapa
+import org.example.batalha_naval.rede.ApiClient
 
-// Uma classe simples para representar um jogador no ranking, por enquanto.
-//! Usar os dados reais do servidor/banco de dados no futuro.
+// Uma linha da tábua de líderes, montada a partir do RankingEntryDTO que vem do servidor.
 data class JogadorScore(val nome: String, val pontuacao: Int)
 
 @Composable
 fun TelaRanking(onVoltarClick: () -> Unit) {
-    
-    // Variável de estado para saber qual modo (aba) está selecionado
-    var modoSelecionado by remember { mutableStateOf("Poça") }
 
-    // Lista falsa de jogadores para testarmos o scroll
-    // No futuro, isso virá do seu servidor/banco de dados!
-    val rankingFalso = List(25) { index -> 
-        JogadorScore(nome = "Capitão ${index + 1}", pontuacao = 10000 - (index * 250))
+    // Variável de estado para saber qual modo (aba) está selecionado
+    var modoSelecionado by remember { mutableStateOf(TipoMapa.POCA) }
+
+    var ranking by remember { mutableStateOf<List<JogadorScore>>(emptyList()) }
+    var carregando by remember { mutableStateOf(true) }
+    var erro by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(modoSelecionado) {
+        carregando = true
+        erro = null
+        try {
+            ranking = ApiClient.buscarRanking(modoSelecionado)
+                .map { JogadorScore(nome = it.nomeJogador, pontuacao = it.pontuacao) }
+        } catch (e: Exception) {
+            erro = "Não foi possível carregar o ranking."
+        } finally {
+            carregando = false
+        }
     }
 
     Column(
@@ -49,11 +61,9 @@ fun TelaRanking(onVoltarClick: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            val modos = listOf("Poça", "Lagoa", "Oceano")
-            
-            modos.forEach { modo ->
+            TipoMapa.entries.forEach { modo ->
                 BotaoAnimado(
-                    texto = modo,
+                    texto = modo.nomeExibido,
                     // Lógica para mudar a cor se o botão for o selecionado
                     onClick = { modoSelecionado = modo },
                     corFundo = if (modoSelecionado == modo) azulOceano else cinza
@@ -87,36 +97,50 @@ fun TelaRanking(onVoltarClick: () -> Unit) {
                 }
                 
                 HorizontalDivider(color = azulProfundo, thickness = 2.dp)
-    
-                // LazyColumn é a lista que rola! 
-                // O Modifier.weight(1f) é o segredo: ele faz a lista empurrar o botão "Voltar" 
-                // para o final da tela e ocupar apenas o espaço que sobrar no meio.
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f) // Ocupa todo o espaço vertical disponível
-                        .padding(vertical = 3.dp)
-                ) {
-                    // itemsIndexed passa por cada jogador da nossa lista e nos dá o índice (0, 1, 2...)
-                    itemsIndexed(rankingFalso) { index, jogador ->
-                        // Uma linha para cada jogador
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                // Coloca um fundo levemente azulado nas posições pares para facilitar a leitura
-                                .background(
-                                    color = if (index % 2 == 0) azulProfundo.copy(alpha = 0.5f) else Color.Transparent
-                                )
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Posição (colocamos +1 porque o index começa em 0)
-                            Text(text = "${index + 1}º", fontWeight = FontWeight.Bold, color = azulProfundo)
-                            // Nome
-                            Text(text = jogador.nome, color = azulProfundo)
-                            // Pontuação
-                            Text(text = "${jogador.pontuacao}", fontWeight = FontWeight.Bold, color = azulOceano)
+
+                if (carregando) {
+                    Text(
+                        text = "Carregando ranking...",
+                        color = azulProfundo,
+                        modifier = Modifier.weight(1f).padding(top = 16.dp)
+                    )
+                } else if (erro != null) {
+                    Text(
+                        text = erro ?: "",
+                        color = Color.Red,
+                        modifier = Modifier.weight(1f).padding(top = 16.dp)
+                    )
+                } else {
+                    // LazyColumn é a lista que rola!
+                    // O Modifier.weight(1f) é o segredo: ele faz a lista empurrar o botão "Voltar"
+                    // para o final da tela e ocupar apenas o espaço que sobrar no meio.
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f) // Ocupa todo o espaço vertical disponível
+                            .padding(vertical = 3.dp)
+                    ) {
+                        // itemsIndexed passa por cada jogador da nossa lista e nos dá o índice (0, 1, 2...)
+                        itemsIndexed(ranking) { index, jogador ->
+                            // Uma linha para cada jogador
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    // Coloca um fundo levemente azulado nas posições pares para facilitar a leitura
+                                    .background(
+                                        color = if (index % 2 == 0) azulProfundo.copy(alpha = 0.5f) else Color.Transparent
+                                    )
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Posição (colocamos +1 porque o index começa em 0)
+                                Text(text = "${index + 1}º", fontWeight = FontWeight.Bold, color = azulProfundo)
+                                // Nome
+                                Text(text = jogador.nome, color = azulProfundo)
+                                // Pontuação
+                                Text(text = "${jogador.pontuacao}", fontWeight = FontWeight.Bold, color = azulOceano)
+                            }
                         }
                     }
                 }

@@ -78,6 +78,9 @@ class EstadoTabuleiro(val tipoMapa: TipoMapa) {
 
     fun acabou(): Boolean = afundadas.size == embarcacoes.size
 
+    // Soma as casas de navio que ainda não foram acertadas. Usado no cálculo do score final.
+    fun celulasDeNaviosRestantes(): Int = vidaDasEmbarcacoes.values.sum()
+
     // ---------- Sorteio dos navios ----------
 
     private fun posicionarNavios() {
