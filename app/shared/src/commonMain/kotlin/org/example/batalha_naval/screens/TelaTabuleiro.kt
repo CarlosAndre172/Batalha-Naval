@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.time.TimeSource
 
 import org.example.batalha_naval.components.*
@@ -53,6 +55,9 @@ fun TelaTabuleiro(
     var combo by remember(tipoMapa) { mutableStateOf(0) }
     var totalAcertosJogador by remember(tipoMapa) { mutableStateOf(0) }
     var powerUpAtivo by remember(tipoMapa) { mutableStateOf<PowerUp?>(null) }
+
+    val coroutineScope = rememberCoroutineScope()
+    var bloqueioDeClique by remember { mutableStateOf(false) }
 
     // Quantas vezes ainda dá pra usar cada power-up nessa partida.
     val usosDePowerUp = remember(tipoMapa) {
@@ -112,7 +117,13 @@ fun TelaTabuleiro(
         // Errar o tiro passa a vez pro bot; o combo zera (e a caixinha some).
         if (!acertouAlgumaCoisa) {
             combo = 0
-            turno = Turno.BOT
+            bloqueioDeClique = true
+
+            coroutineScope.launch {
+                delay(1500) // Congela por 1,5 segundos para ver a água
+                turno = Turno.BOT // agora passa a vez para o Bot
+                bloqueioDeClique = false // Destrava o tabuleiro
+            }
         }
     }
 
@@ -194,7 +205,7 @@ fun TelaTabuleiro(
                     tabuleiro = tabuleiroEmFoco,
                     modifier = Modifier.padding(8.dp),
                     tamanhoCelula = tamanhoCelula,
-                    habilitado = turno == Turno.JOGADOR && !tabuleiroInimigo.acabou(),
+                    habilitado = turno == Turno.JOGADOR && !tabuleiroInimigo.acabou() && !bloqueioDeClique,
                     onTiro = { linha, coluna -> atirar(linha, coluna) }
                 )
             }
