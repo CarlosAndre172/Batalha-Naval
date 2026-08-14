@@ -1,5 +1,6 @@
 package org.example.batalha_naval.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,6 +37,7 @@ import org.example.batalha_naval.jogo.*
 import org.example.batalha_naval.jogo.bot.BotAdversario
 import org.example.batalha_naval.rede.ApiClient
 import org.example.batalha_naval.themes.palettes.*
+import org.example.batalha_naval.components.TelaResultado
 
 @Composable
 fun TelaTabuleiro(
@@ -47,7 +51,7 @@ fun TelaTabuleiro(
     // Tabuleiro do jogador: é nele que o bot atira.
     val tabuleiroJogador = remember(tipoMapa) { EstadoTabuleiro(tipoMapa) }
 
-    // De quem é a vez de atirar. Também decide qual tabuleiro aparece em foco na tela.
+    // De quem é a vez de atirar.
     var turno by remember(tipoMapa) { mutableStateOf(Turno.JOGADOR) }
     val bot = remember(tipoMapa) { BotAdversario() }
 
@@ -58,6 +62,12 @@ fun TelaTabuleiro(
 
     val coroutineScope = rememberCoroutineScope()
     var bloqueioDeClique by remember { mutableStateOf(false) }
+
+    // Estados visuais para a animação e marcação do bot
+    var ultimaJogadaBot by remember(tipoMapa) { mutableStateOf<Pair<Int, Int>?>(null) }
+    var raioCirculoBot by remember(tipoMapa) { mutableStateOf(0f) }
+    var alfaCirculoBot by remember(tipoMapa) { mutableStateOf(1f) }
+    var casaErroBotVermelha by remember(tipoMapa) { mutableStateOf<Pair<Int, Int>?>(null) }
 
     // Quantas vezes ainda dá pra usar cada power-up nessa partida.
     val usosDePowerUp = remember(tipoMapa) {
@@ -74,7 +84,7 @@ fun TelaTabuleiro(
         else -> 34.dp
     }
 
-    // Quais casas o tiro vai atingir. Sem power-up, é só a casa clicada.
+    // Quais casas o tiro vai atingir.
     fun alvosDoTiro(linha: Int, coluna: Int): List<Pair<Int, Int>> {
         val alvos = when (powerUpAtivo) {
             PowerUp.BOMBA -> (linha - 1..linha + 1).flatMap { l -> (coluna - 1..coluna + 1).map { c -> l to c } }
@@ -84,7 +94,7 @@ fun TelaTabuleiro(
         return alvos.filter { (l, c) -> tabuleiroInimigo.dentroDoTabuleiro(l, c) }
     }
 
-    // É esta função que o onRelease do botãozinho chama.
+    // Função de tiro do Jogador
     fun atirar(linha: Int, coluna: Int) {
         if (turno != Turno.JOGADOR) return
 
@@ -104,44 +114,65 @@ fun TelaTabuleiro(
                     totalAcertosJogador++
                     pontos += 250 * multiplicadorDoCombo(combo)
                 }
-                ResultadoTiro.AGUA, ResultadoTiro.JA_ATACADA -> { /* não ganha nada */ }
+                ResultadoTiro.AGUA, ResultadoTiro.JA_ATACADA -> { /* nada */ }
             }
         }
 
-        // Se um power-up estava armado, ele foi gasto neste tiro.
         powerUpAtivo?.let { powerUp ->
             usosDePowerUp[powerUp] = (usosDePowerUp[powerUp] ?: 1) - 1
         }
         powerUpAtivo = null
 
-        // Errar o tiro passa a vez pro bot; o combo zera (e a caixinha some).
         if (!acertouAlgumaCoisa) {
             combo = 0
             bloqueioDeClique = true
 
             coroutineScope.launch {
-                delay(1500) // Congela por 1,5 segundos para ver a água
-                turno = Turno.BOT // agora passa a vez para o Bot
-                bloqueioDeClique = false // Destrava o tabuleiro
+                delay(1500)
+                turno = Turno.BOT
+                bloqueioDeClique = false
             }
         }
     }
 
-    // Enquanto for a vez do bot, ele atira sozinho no tabuleiro do jogador até errar.
+    // Turno do Bot, faz a animação de círculo e também a marcação (de vermelho).
     LaunchedEffect(turno, tipoMapa) {
         while (turno == Turno.BOT && !tabuleiroJogador.acabou() && !tabuleiroInimigo.acabou()) {
-            delay(1000)
+            // Quando a tela volta para o bot, limpamos o erro vermelho anterior
+            casaErroBotVermelha = null
+            delay(1000) // Bot "pensando"
+
+            // Bot escolhe o alvo
             val (linha, coluna) = bot.escolherTiro(tipoMapa.tamanho)
+            
+            // Esolhe a casa e ataca.
             val resultado = tabuleiroJogador.atacar(linha, coluna)
             bot.registrarResultado(linha to coluna, resultado, tipoMapa.tamanho)
-
+            
+            // Se errou, a casa do tabuleiro fica vermelha
             if (resultado == ResultadoTiro.AGUA) {
-                turno = Turno.JOGADOR
+                casaErroBotVermelha = linha to coluna
+            }
+
+            // Dispara a animação do círculo
+            ultimaJogadaBot = linha to coluna
+            for (i in 1..8) {
+                raioCirculoBot = i * (tamanhoCelula.value / 3f)
+                alfaCirculoBot = 1f - (i / 8f)
+                delay(35)
+            }
+            ultimaJogadaBot = null // Limpa o objeto do círculo para liberar memória
+
+            // Se o bot errou, faz a pausa e devolve o turno para o jogador
+            if (resultado == ResultadoTiro.AGUA) {
+                delay(1500) // Pausa para o jogador absorver a jogada
+                casaErroBotVermelha = null // Limpa a marcação vermelha
+                turno = Turno.JOGADOR // Sua vez!
             }
         }
     }
 
-    // Ao afundar a frota inimiga, manda o resultado da partida pro servidor (uma vez só).
+    // Envio de pontuação ao vencer
     LaunchedEffect(tabuleiroInimigo.acabou()) {
         if (tabuleiroInimigo.acabou() && !scoreEnviado) {
             scoreEnviado = true
@@ -156,8 +187,6 @@ fun TelaTabuleiro(
         }
     }
 
-    // Os tabuleiros se intercalam: na vez do jogador, mostra o mar do inimigo pra
-    // atacar; na vez do bot, mostra o próprio mar recebendo os tiros dele.
     val tabuleiroEmFoco = if (turno == Turno.JOGADOR) tabuleiroInimigo else tabuleiroJogador
 
     Row(
@@ -170,13 +199,12 @@ fun TelaTabuleiro(
             modifier = Modifier.weight(1f),
             contentAlignment = Alignment.Center
         ) {
-            // A caixinha do combo só existe a partir de 2 acertos seguidos.
             if (combo >= 2) {
                 IndicadorCombo(combo = combo, modifier = Modifier.width(140.dp))
             }
         }
 
-        // ---------- MEIO: o tabuleiro ----------
+        // ---------- MEIO: o tabuleiro com sobreposição de efeitos ----------
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
             Text(
@@ -195,19 +223,52 @@ fun TelaTabuleiro(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Moldura de madeira em volta da grade de botões. Alterna entre o mar do
-            // inimigo (vez do jogador) e o mar do jogador (vez do bot).
             Surface(
                 color = marromMadeira,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                TabuleiroNaval(
-                    tabuleiro = tabuleiroEmFoco,
-                    modifier = Modifier.padding(8.dp),
-                    tamanhoCelula = tamanhoCelula,
-                    habilitado = turno == Turno.JOGADOR && !tabuleiroInimigo.acabou() && !bloqueioDeClique,
-                    onTiro = { linha, coluna -> atirar(linha, coluna) }
-                )
+                // Usamos uma Box dentro da moldura para desenhar os efeitos visuais por cima do tabuleiro
+                Box(modifier = Modifier.padding(8.dp)) {
+                    TabuleiroNaval(
+                        tabuleiro = tabuleiroEmFoco,
+                        modifier = Modifier.align(Alignment.Center),
+                        tamanhoCelula = tamanhoCelula,
+                        habilitado = turno == Turno.JOGADOR && !tabuleiroInimigo.acabou() && !bloqueioDeClique,
+                        onTiro = { linha, coluna -> atirar(linha, coluna) }
+                    )
+
+                    // Canvas para desenhar a marcação vermelha e o círculo animado do bot
+                    if (turno == Turno.BOT || casaErroBotVermelha != null) {
+                        Canvas(modifier = Modifier.matchParentSize()) {
+                            val cellPx = tamanhoCelula.toPx()
+
+                            // Desenha a marcação vermelha se o bot errou nesta célula
+                            casaErroBotVermelha?.let { (l, c) ->
+                                val x = c * cellPx
+                                val y = l * cellPx
+                                drawRect(
+                                    color = Color.Red.copy(alpha = 0.5f),
+                                    topLeft = androidx.compose.ui.geometry.Offset(x, y),
+                                    size = androidx.compose.ui.geometry.Size(cellPx, cellPx)
+                                )
+                            }
+
+                            // Desenha a circunferência amarela expandindo e sumindo
+                            ultimaJogadaBot?.let { (l, c) ->
+                                val centerX = (c * cellPx) + (cellPx / 2f)
+                                val centerY = (l * cellPx) + (cellPx / 2f)
+                                if (raioCirculoBot > 0f) {
+                                    drawCircle(
+                                        color = Color.Yellow.copy(alpha = alfaCirculoBot.coerceIn(0f, 1f)),
+                                        radius = raioCirculoBot,
+                                        center = androidx.compose.ui.geometry.Offset(centerX, centerY),
+                                        style = Stroke(width = 3.dp.toPx())
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -254,7 +315,6 @@ fun TelaTabuleiro(
                 powerUpAtivo = powerUpAtivo,
                 usosRestantes = { powerUp -> usosDePowerUp[powerUp] ?: 0 },
                 onSelecionar = { powerUp ->
-                    // Clicar de novo no mesmo power-up desarma ele.
                     powerUpAtivo = if (powerUpAtivo == powerUp) null else powerUp
                 },
                 modifier = Modifier.width(160.dp)
@@ -268,8 +328,16 @@ fun TelaTabuleiro(
                 modifier = Modifier.width(160.dp)
             )
         }
+    }   
+
+    //Pra mostrar a tela de resultado quando o jogo termina
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        if (tabuleiroInimigo.acabou() || tabuleiroJogador.acabou()) {
+            TelaResultado()
+        }
     }
+    
 }
 
-// A partir de 2 acertos seguidos, o combo vira multiplicador de pontos.
 private fun multiplicadorDoCombo(combo: Int): Int = if (combo >= 2) combo else 1
