@@ -376,8 +376,25 @@ fun TelaTabuleiro(
     //Pra mostrar a tela de resultado quando o jogo termina
     Box(modifier = Modifier.fillMaxSize()) {
 
-        if (tabuleiroInimigo.acabou() || tabuleiroJogador.acabou()) {
-            TelaResultado()
+
+        // Aqui você calcula quantos power-ups sobraram
+            val powerUpsRestantes = usosDePowerUp.values.sum()
+            
+            // Aqui conta quantos navios sobreviveram
+            val sobreviventes = tabuleiroJogador.embarcacoes.size - tabuleiroJogador.afundadas.size
+
+            if (tabuleiroInimigo.acabou() || tabuleiroJogador.acabou()) {
+            TelaResultado(
+                vitoria = tabuleiroInimigo.acabou(), 
+                nomeJogador = nomeJogador.ifEmpty { "Fu Xuan" }, 
+                embarcacoesDerrubadas = tabuleiroInimigo.afundadas.size,
+                embarcacoesDanificadas = 0, // Precisamos contar navios que tomaram tiro mas não afundaram
+                embarcacoesSobreviventes = sobreviventes,
+                comboMaximo = 9,
+                powerUpsRestantes = powerUpsRestantes,
+                pontuacaoTotal = pontos, // O total do jogo
+                onVoltarMenu = onVoltarClick
+            )
         }
     }
     
