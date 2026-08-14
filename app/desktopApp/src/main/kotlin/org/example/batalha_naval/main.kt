@@ -1,7 +1,12 @@
 package org.example.batalha_naval
 
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import io.ktor.server.application.Application
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
@@ -31,12 +36,21 @@ fun main() {
     }
 
     application {
+        // O padrão do Compose Desktop (800x600) é baixo demais pra tela de resultado
+        // (título + tabela + placar + botões) caber de pé; nessa janela maior tudo
+        // aparece sem precisar rolar. Windows.CenteredPosition centraliza no monitor.
+        val estadoDaJanela = rememberWindowState(
+            size = DpSize(1000.dp, 720.dp),
+            position = WindowPosition.Aligned(Alignment.Center)
+        )
+
         Window(
             onCloseRequest = {
                 encerrar()
                 exitApplication()
             },
             title = "Batalha-Naval",
+            state = estadoDaJanela,
         ) {
             App(fecharApp = {
                 encerrar()

@@ -3,7 +3,9 @@ package org.example.batalha_naval.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,10 +52,17 @@ fun TelaResultado(
         Surface(
             color = Color(0xFF1E1E1E), // Um cinza bem escuro
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.width(600.dp).padding(16.dp)
+            // heightIn(max) em vez de deixar o Surface crescer livre: numa janela
+            // pequena (o padrão é 800x600), o cartão inteiro — título, tabela,
+            // placar E os botões — não cabia de pé, e o botão de baixo saía da
+            // tela sem dar nenhum aviso. Limitando a altura e deixando o miolo
+            // rolar, os botões sempre ficam alcançáveis, do tamanho de janela que for.
+            modifier = Modifier.width(600.dp).heightIn(max = 560.dp).padding(16.dp)
         ) {
             Column(
-                modifier = Modifier.padding(32.dp),
+                modifier = Modifier
+                    .padding(32.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Título de Vitória ou Derrota
