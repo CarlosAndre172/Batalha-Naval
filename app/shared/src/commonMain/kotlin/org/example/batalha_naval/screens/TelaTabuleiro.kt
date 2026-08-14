@@ -45,7 +45,8 @@ fun TelaTabuleiro(
     tipoMapa: TipoMapa = TipoMapa.OCEANO,
     nomeJogador: String = "",
     modoPosicionamento: ModoPosicionamento = ModoPosicionamento.ALEATORIO,
-    onVoltarClick: () -> Unit
+    onVoltarClick: () -> Unit,
+    onVoltarTelaInicial: () -> Unit = onVoltarClick
 ) {
     // Tabuleiro do inimigo: é nele que o jogador atira. A frota do bot é sempre sorteada.
     val tabuleiroInimigo = remember(tipoMapa) { EstadoTabuleiro(tipoMapa) }
@@ -402,7 +403,8 @@ fun TelaTabuleiro(
                 powerUpsRestantes = usosDePowerUp.values.sum(),
                 tempoSegundos = tempoFinalSegundos,
                 detalhe = detalhe,
-                onVoltarMenu = onVoltarClick
+                onJogarNovamente = onVoltarClick,
+                onVoltarTelaInicial = onVoltarTelaInicial
             )
         }
     }

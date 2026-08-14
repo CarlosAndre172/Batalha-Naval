@@ -81,7 +81,11 @@ fun App( fecharApp: () -> Unit = {} ) {
                         tipoMapa = mapaEscolhido.value,
                         nomeJogador = nomeJogador.value,
                         modoPosicionamento = modoPosicionamento.value,
-                        onVoltarClick = { telaAtual.value = telaIniciarJogo }
+                        onVoltarClick = { telaAtual.value = telaIniciarJogo },
+                        onVoltarTelaInicial = {
+                            direcaoAnimacao = DirecaoAnimacao.BAIXO_PARA_CIMA
+                            telaAtual.value = telaInicial
+                        }
                     )
                 } else if (telaAtiva == telaRanking) {
                     TelaRanking(

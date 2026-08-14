@@ -9,6 +9,15 @@ plugins {
 dependencies {
     implementation(project(":app:shared"))
 
+    // O jogo sobe o servidor Ktor (server/) dentro do próprio processo, pra salvar
+    // partidas e ler o ranking sem precisar de um segundo terminal com ":server:run".
+    // ktor-serverCore/Netty entram aqui pra compilar embeddedServer(...) direto no
+    // main.kt; o resto (mysql-connector, content negotiation, logback...) já vem
+    // pronto no classpath de execução via essa mesma dependência de projeto.
+    implementation(project(":server"))
+    implementation(libs.ktor.serverCore)
+    implementation(libs.ktor.serverNetty)
+
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutinesSwing)
 

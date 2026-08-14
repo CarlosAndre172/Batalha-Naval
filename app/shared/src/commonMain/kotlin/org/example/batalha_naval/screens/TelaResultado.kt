@@ -36,7 +36,8 @@ fun TelaResultado(
     powerUpsRestantes: Int,
     tempoSegundos: Int,
     detalhe: DetalheDaPontuacao,
-    onVoltarMenu: () -> Unit
+    onJogarNovamente: () -> Unit,  // Volta pra tela de configurar partida (escolher mar, nome...).
+    onVoltarTelaInicial: () -> Unit // Volta direto pro menu principal do jogo.
 ) {
     // Fundo fumê que cobre o tabuleiro e bloqueia cliques acidentais nos navios de trás
     Box(
@@ -136,12 +137,22 @@ fun TelaResultado(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                BotaoAnimado(
-                    texto = "Voltar ao Menu",
-                    corFundo = Color(0xFF2196F3),
-                    corTexto = Color.White
-                ) {
-                    onVoltarMenu()
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BotaoAnimado(
+                        texto = "Jogar Novamente",
+                        corFundo = Color(0xFF2196F3),
+                        corTexto = Color.White
+                    ) {
+                        onJogarNovamente()
+                    }
+
+                    BotaoAnimado(
+                        texto = "Voltar Para Tela Inicial",
+                        corFundo = Color(0xFF616161),
+                        corTexto = Color.White
+                    ) {
+                        onVoltarTelaInicial()
+                    }
                 }
             }
         }

@@ -21,6 +21,16 @@ fun Application.module() {
         json()
     }
 
+    // Cria o banco e as tabelas se ainda não existirem, pra máquina nova funcionar
+    // sem precisar rodar sql/batalha_naval.sql na mão. Se o MySQL nem estiver de
+    // pé, o servidor sobe do mesmo jeito: as rotas abaixo já respondem 500 quando
+    // tentam falar com o banco, em vez de derrubar o processo inteiro.
+    try {
+        Database.garantirEsquema()
+    } catch (e: Exception) {
+        log.warn("Não foi possível preparar o banco de dados: ${e.message}")
+    }
+
     val partidaRepository = PartidaRepository()
 
     routing {
