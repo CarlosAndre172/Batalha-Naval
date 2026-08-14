@@ -32,6 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.TimeSource
 
+import org.example.batalha_naval.audio.EfeitosSonoros
 import org.example.batalha_naval.components.*
 import org.example.batalha_naval.jogo.*
 import org.example.batalha_naval.jogo.bot.BotAdversario
@@ -43,13 +44,17 @@ import org.example.batalha_naval.components.TelaResultado
 fun TelaTabuleiro(
     tipoMapa: TipoMapa = TipoMapa.OCEANO,
     nomeJogador: String = "",
+    modoPosicionamento: ModoPosicionamento = ModoPosicionamento.ALEATORIO,
     onVoltarClick: () -> Unit
 ) {
-    // Tabuleiro do inimigo: é nele que o jogador atira.
+    // Tabuleiro do inimigo: é nele que o jogador atira. A frota do bot é sempre sorteada.
     val tabuleiroInimigo = remember(tipoMapa) { EstadoTabuleiro(tipoMapa) }
 
-    // Tabuleiro do jogador: é nele que o bot atira.
-    val tabuleiroJogador = remember(tipoMapa) { EstadoTabuleiro(tipoMapa) }
+    // Tabuleiro do jogador: é nele que o bot atira. No modo manual ele nasce vazio,
+    // porque quem coloca os navios é o jogador, na tela de posicionamento.
+    val tabuleiroJogador = remember(tipoMapa, modoPosicionamento) {
+        EstadoTabuleiro(tipoMapa, sortearNoInicio = modoPosicionamento == ModoPosicionamento.ALEATORIO)
+    }
 
     // De quem é a vez de atirar.
     var turno by remember(tipoMapa) { mutableStateOf(Turno.JOGADOR) }
@@ -74,7 +79,9 @@ fun TelaTabuleiro(
         mutableStateMapOf(PowerUp.BOMBA to 1, PowerUp.BOMBARDEIO to 1)
     }
 
-    val inicioPartida = remember(tipoMapa) { TimeSource.Monotonic.markNow() }
+    // O cronômetro do score só começa a valer quando a partida começa de verdade,
+    // por isso ele é reiniciado ao confirmar o posicionamento manual.
+    var inicioPartida by remember(tipoMapa) { mutableStateOf(TimeSource.Monotonic.markNow()) }
     var scoreEnviado by remember(tipoMapa) { mutableStateOf(false) }
 
     // Tabuleiro pequeno = casas maiores, pra ocupar mais ou menos o mesmo espaço na tela.
@@ -84,7 +91,25 @@ fun TelaTabuleiro(
         else -> 34.dp
     }
 
-    // Quais casas o tiro vai atingir.
+    // No modo manual, a partida só aparece depois que o jogador monta a frota dele.
+    var posicionandoFrota by remember(tipoMapa, modoPosicionamento) {
+        mutableStateOf(modoPosicionamento == ModoPosicionamento.MANUAL)
+    }
+    
+    if (posicionandoFrota) {
+        TelaPosicionarNavios(
+            tabuleiro = tabuleiroJogador,
+            tamanhoCelula = tamanhoCelula,
+            onConfirmar = {
+                posicionandoFrota = false
+                inicioPartida = TimeSource.Monotonic.markNow()
+            },
+            onVoltarClick = onVoltarClick
+            )
+            return
+        }
+        
+    // Quais casas o tiro vai atingir. Sem power-up, é só a casa clicada.
     fun alvosDoTiro(linha: Int, coluna: Int): List<Pair<Int, Int>> {
         val alvos = when (powerUpAtivo) {
             PowerUp.BOMBA -> (linha - 1..linha + 1).flatMap { l -> (coluna - 1..coluna + 1).map { c -> l to c } }
@@ -99,6 +124,7 @@ fun TelaTabuleiro(
         if (turno != Turno.JOGADOR) return
 
         var acertouAlgumaCoisa = false
+        var caiuNaAgua = false
 
         alvosDoTiro(linha, coluna).forEach { (l, c) ->
             when (tabuleiroInimigo.atacar(l, c)) {
@@ -114,10 +140,20 @@ fun TelaTabuleiro(
                     totalAcertosJogador++
                     pontos += 250 * multiplicadorDoCombo(combo)
                 }
-                ResultadoTiro.AGUA, ResultadoTiro.JA_ATACADA -> { /* nada */ }
+                ResultadoTiro.AGUA -> caiuNaAgua = true
+                ResultadoTiro.JA_ATACADA -> { /* não ganha nada */ }
             }
         }
 
+        // Um som por tiro, mesmo quando o power-up atinge várias casas de uma vez:
+        // se pegou navio em alguma delas, toca a explosão; senão, o splash.
+        if (acertouAlgumaCoisa) {
+            EfeitosSonoros.tocarExplosao()
+        } else if (caiuNaAgua) {
+            EfeitosSonoros.tocarAgua()
+        }
+
+        // Se um power-up estava armado, ele foi gasto neste tiro.
         powerUpAtivo?.let { powerUp ->
             usosDePowerUp[powerUp] = (usosDePowerUp[powerUp] ?: 1) - 1
         }
@@ -149,6 +185,13 @@ fun TelaTabuleiro(
             val resultado = tabuleiroJogador.atacar(linha, coluna)
             bot.registrarResultado(linha to coluna, resultado, tipoMapa.tamanho)
             
+            
+            when (resultado) {
+                ResultadoTiro.ACERTOU, ResultadoTiro.AFUNDOU -> EfeitosSonoros.tocarExplosao()
+                ResultadoTiro.AGUA -> EfeitosSonoros.tocarAgua()
+            ResultadoTiro.JA_ATACADA -> { /* sem som */ }
+        }
+        
             // Se errou, a casa do tabuleiro fica vermelha
             if (resultado == ResultadoTiro.AGUA) {
                 casaErroBotVermelha = linha to coluna

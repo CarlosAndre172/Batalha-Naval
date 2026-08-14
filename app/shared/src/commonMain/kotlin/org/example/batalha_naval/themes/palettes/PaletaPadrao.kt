@@ -20,6 +20,11 @@ internal val cinza  = Color(0xFF808080)
 internal val laranjaAcerto = Color(0xFFE67E22)   // Casa onde tem uma embarcação.
 internal val vermelhoAfundado = Color(0xFF922B21) // Embarcação destruída por completo.
 
+// Cores da tela de posicionamento da frota:
+internal val cinzaNavio = Color(0xFF5D6D7E)        // Navio que o jogador já encaixou.
+internal val verdePosicionavel = Color(0xFF27AE60) // Prévia: dá pra colocar aqui.
+internal val vermelhoBloqueado = Color(0xFFC0392B) // Prévia: não cabe aqui.
+
 // Cores complementares:
 internal val roxoEscuro = Color(0xFF6257C7)
 internal val roxoClaro = Color(0xFF6257C7)
