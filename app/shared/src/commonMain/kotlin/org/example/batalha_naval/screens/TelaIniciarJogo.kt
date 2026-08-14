@@ -31,7 +31,7 @@ fun TelaIniciarJogo(
     // Como a frota do jogador vai pro tabuleiro. A do bot é sempre sorteada.
     var posicionamentoSelecionado by remember { mutableStateOf(ModoPosicionamento.ALEATORIO) }
 
-    PainelDeConteudo(largura = 0.6f, altura = 0.9f, paddingInternoInferior = 8.dp) {
+    PainelDeConteudo(largura = 0.6f, altura = 1.2f, paddingInternoInferior = 8.dp) {
         Text(
             "Modo de Jogo", 
             fontSize = 16.sp,
