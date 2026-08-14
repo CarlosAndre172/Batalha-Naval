@@ -15,18 +15,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import org.example.batalha_naval.jogo.DetalheDaPontuacao
+import org.example.batalha_naval.jogo.PENALIDADE_POR_SEGUNDO
+import org.example.batalha_naval.jogo.TipoMapa
+import org.example.batalha_naval.jogo.pesoDaSobrevivencia
 import org.example.batalha_naval.themes.palettes.*
 
+// Placar do fim da partida. Os números da tabela NÃO são calculados aqui: eles vêm
+// prontos da CalculadoraDePontuacao, via TelaTabuleiro, pra tela e banco de dados
+// mostrarem exatamente a mesma pontuação.
 @Composable
 fun TelaResultado(
     vitoria: Boolean,
     nomeJogador: String,
+    tipoMapa: TipoMapa,
     embarcacoesDerrubadas: Int,
     embarcacoesDanificadas: Int,
-    embarcacoesSobreviventes: Int,
+    casasDeNavioIntactas: Int,
     comboMaximo: Int,
     powerUpsRestantes: Int,
-    pontuacaoTotal: Int,
+    tempoSegundos: Int,
+    detalhe: DetalheDaPontuacao,
     onVoltarMenu: () -> Unit
 ) {
     // Fundo fumê que cobre o tabuleiro e bloqueia cliques acidentais nos navios de trás
@@ -65,33 +74,46 @@ fun TelaResultado(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Tabela de resultados
+                // Tabela de resultados: só as três primeiras linhas viram pontos,
+                // as de baixo são informativas.
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // Valores fictícios de multiplicadores (adicionar)
-                     LinhaEstatistica(
-                        label = "Número embarcações derrubadas:",
-                        calculo = "$embarcacoesDerrubadas * 200",
-                        total = "${embarcacoesDerrubadas * 200}"
+                    LinhaEstatistica(
+                        label = "Acertos (já com o combo):",
+                        calculo = "soma das jogadas",
+                        total = "${detalhe.pontuacaoFinalAcertos}"
                     )
                     LinhaEstatistica(
-                        label = "Número embarcações danificadas:",
+                        label = "Casas de navio intactas:",
+                        calculo = "$casasDeNavioIntactas * ${pesoDaSobrevivencia(tipoMapa)}",
+                        total = "${detalhe.bonusSobrevivencia}"
+                    )
+                    LinhaEstatistica(
+                        label = "Tempo de partida:",
+                        calculo = "${tempoSegundos}s * $PENALIDADE_POR_SEGUNDO",
+                        total = "-${detalhe.penalidadeTempo}"
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    LinhaEstatistica(
+                        label = "Embarcações inimigas derrubadas:",
+                        calculo = "$embarcacoesDerrubadas",
+                        total = "" // Já contabilizadas nos acertos.
+                    )
+                    LinhaEstatistica(
+                        label = "Embarcações inimigas danificadas:",
                         calculo = "$embarcacoesDanificadas",
-                        total = "" // Danificadas não dá ponto
-                    )
-                    LinhaEstatistica(
-                        label = "Número embarcações sobreviventes:",
-                        calculo = "$embarcacoesSobreviventes * 500",
-                        total = "${embarcacoesSobreviventes * 500}"
+                        total = ""
                     )
                     LinhaEstatistica(
                         label = "Combo máx:",
-                        calculo = "$comboMaximo * 30",
-                        total = "${comboMaximo * 30}"
+                        calculo = "x$comboMaximo",
+                        total = ""
                     )
                     LinhaEstatistica(
                         label = "Power-ups restantes:",
-                        calculo = "$powerUpsRestantes * 5000",
-                        total = "${powerUpsRestantes * 5000}"
+                        calculo = "$powerUpsRestantes",
+                        total = ""
                     )
                 }
 
@@ -101,9 +123,10 @@ fun TelaResultado(
                 Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(Color.White.copy(alpha = 0.2f)))
 
                 Spacer(modifier = Modifier.height(16.dp))
-                //pontuação total
+                // Pontuação total: exatamente o que a CalculadoraDePontuacao devolveu
+                // e o que foi enviado para o ranking.
                 Text(
-                    text = "$pontuacaoTotal",
+                    text = "${detalhe.pontuacaoFinal}",
                     color = Color(0xFFFFD700), // Dourado estranho
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,

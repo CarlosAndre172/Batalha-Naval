@@ -60,9 +60,11 @@ fun TelaTabuleiro(
     var turno by remember(tipoMapa) { mutableStateOf(Turno.JOGADOR) }
     val bot = remember(tipoMapa) { BotAdversario() }
 
-    var pontos by remember(tipoMapa) { mutableStateOf(0) }
+    // A soma de todas as jogadas certeiras do jogador, cada uma já multiplicada pelo
+    // combo do momento. É a "pontuacaoFinalAcertos" que a calculadora usa no fim.
+    var pontuacaoFinalAcertos by remember(tipoMapa) { mutableStateOf(0) }
     var combo by remember(tipoMapa) { mutableStateOf(0) }
-    var totalAcertosJogador by remember(tipoMapa) { mutableStateOf(0) }
+    var comboMaximo by remember(tipoMapa) { mutableStateOf(0) }
     var powerUpAtivo by remember(tipoMapa) { mutableStateOf<PowerUp?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
@@ -128,17 +130,13 @@ fun TelaTabuleiro(
 
         alvosDoTiro(linha, coluna).forEach { (l, c) ->
             when (tabuleiroInimigo.atacar(l, c)) {
-                ResultadoTiro.ACERTOU -> {
+                // Acertar e afundar pontuam igual: o que muda a conta é o combo.
+                ResultadoTiro.ACERTOU, ResultadoTiro.AFUNDOU -> {
                     acertouAlgumaCoisa = true
                     combo++
-                    totalAcertosJogador++
-                    pontos += 100 * multiplicadorDoCombo(combo)
-                }
-                ResultadoTiro.AFUNDOU -> {
-                    acertouAlgumaCoisa = true
-                    combo++
-                    totalAcertosJogador++
-                    pontos += 250 * multiplicadorDoCombo(combo)
+                    if (combo > comboMaximo) comboMaximo = combo
+                    // A pontuação da jogada entra no acumulado na hora, já com o combo.
+                    pontuacaoFinalAcertos += pontosDaJogada(tipoMapa, combo)
                 }
                 ResultadoTiro.AGUA -> caiuNaAgua = true
                 ResultadoTiro.JA_ATACADA -> { /* não ganha nada */ }
@@ -215,18 +213,32 @@ fun TelaTabuleiro(
         }
     }
 
-    // Envio de pontuação ao vencer
-    LaunchedEffect(tabuleiroInimigo.acabou()) {
-        if (tabuleiroInimigo.acabou() && !scoreEnviado) {
+    // A partida acabou quando uma das duas frotas afundou inteira.
+    val partidaAcabou = tabuleiroInimigo.acabou() || tabuleiroJogador.acabou()
+
+    // Congela o resultado no instante em que a partida termina: o relógio para de
+    // correr e a mesma conta serve pra tela de resultado e pro ranking.
+    var resultadoFinal by remember(tipoMapa) { mutableStateOf<DetalheDaPontuacao?>(null) }
+    var tempoFinalSegundos by remember(tipoMapa) { mutableStateOf(0) }
+
+    LaunchedEffect(partidaAcabou) {
+        if (partidaAcabou && !scoreEnviado) {
             scoreEnviado = true
+
             val tempoSegundos = inicioPartida.elapsedNow().inWholeSeconds.toInt()
-            val score = calcularScoreFinal(
-                acertos = totalAcertosJogador,
+            val detalhe = detalharScoreFinal(
+                pontuacaoFinalAcertos = pontuacaoFinalAcertos,
                 naviosVivos = tabuleiroJogador.celulasDeNaviosRestantes(),
                 tempoSegundos = tempoSegundos,
                 tipoMapa = tipoMapa
             )
-            ApiClient.salvarPartida(nomeJogador, score, tempoSegundos, tipoMapa)
+
+            tempoFinalSegundos = tempoSegundos
+            resultadoFinal = detalhe
+
+            // Vitória ou derrota, a partida vai pro ranking: o servidor só guarda a
+            // pontuação se ela bater o recorde anterior do jogador naquele mar.
+            ApiClient.salvarPartida(nomeJogador, detalhe.pontuacaoFinal, tempoSegundos, tipoMapa)
         }
     }
 
@@ -348,7 +360,9 @@ fun TelaTabuleiro(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             CaixaPontos(
-                pontos = pontos,
+                // Durante a partida o placar mostra o acumulado dos acertos; os bônus
+                // de sobrevivência e a penalidade de tempo entram só no fim.
+                pontos = pontuacaoFinalAcertos,
                 embarcacoesAfundadas = tabuleiroInimigo.afundadas.size,
                 totalDeEmbarcacoes = tabuleiroInimigo.embarcacoes.size,
                 modifier = Modifier.width(160.dp)
@@ -373,31 +387,23 @@ fun TelaTabuleiro(
         }
     }   
 
-    //Pra mostrar a tela de resultado quando o jogo termina
-    Box(modifier = Modifier.fillMaxSize()) {
-
-
-        // Aqui você calcula quantos power-ups sobraram
-            val powerUpsRestantes = usosDePowerUp.values.sum()
-            
-            // Aqui conta quantos navios sobreviveram
-            val sobreviventes = tabuleiroJogador.embarcacoes.size - tabuleiroJogador.afundadas.size
-
-            if (tabuleiroInimigo.acabou() || tabuleiroJogador.acabou()) {
+    // Pra mostrar a tela de resultado quando o jogo termina. Só aparece depois que o
+    // LaunchedEffect acima fechou a conta, então os números nunca saem pela metade.
+    resultadoFinal?.let { detalhe ->
+        Box(modifier = Modifier.fillMaxSize()) {
             TelaResultado(
-                vitoria = tabuleiroInimigo.acabou(), 
-                nomeJogador = nomeJogador.ifEmpty { "Fu Xuan" }, 
+                vitoria = tabuleiroInimigo.acabou(),
+                nomeJogador = nomeJogador,
+                tipoMapa = tipoMapa,
                 embarcacoesDerrubadas = tabuleiroInimigo.afundadas.size,
-                embarcacoesDanificadas = 0, // Precisamos contar navios que tomaram tiro mas não afundaram
-                embarcacoesSobreviventes = sobreviventes,
-                comboMaximo = 9,
-                powerUpsRestantes = powerUpsRestantes,
-                pontuacaoTotal = pontos, // O total do jogo
+                embarcacoesDanificadas = tabuleiroInimigo.embarcacoesDanificadas(),
+                casasDeNavioIntactas = tabuleiroJogador.celulasDeNaviosRestantes(),
+                comboMaximo = comboMaximo,
+                powerUpsRestantes = usosDePowerUp.values.sum(),
+                tempoSegundos = tempoFinalSegundos,
+                detalhe = detalhe,
                 onVoltarMenu = onVoltarClick
             )
         }
     }
-    
 }
-
-private fun multiplicadorDoCombo(combo: Int): Int = if (combo >= 2) combo else 1

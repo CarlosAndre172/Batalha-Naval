@@ -89,6 +89,13 @@ class EstadoTabuleiro(val tipoMapa: TipoMapa, sortearNoInicio: Boolean = true) {
     // Soma as casas de navio que ainda não foram acertadas. Usado no cálculo do score final.
     fun celulasDeNaviosRestantes(): Int = vidaDasEmbarcacoes.values.sum()
 
+    // Embarcações que já levaram tiro mas ainda estão flutuando. A tela de resultado
+    // mostra isso separado das que afundaram de vez.
+    fun embarcacoesDanificadas(): Int = embarcacoes.count { embarcacao ->
+        val vida = vidaDasEmbarcacoes[embarcacao.id] ?: embarcacao.tamanho
+        vida in 1 until embarcacao.tamanho
+    }
+
     // ---------- Posicionamento manual ----------
 
     // A próxima embarcação que ainda falta colocar. Null = a frota inteira já está no mar.
