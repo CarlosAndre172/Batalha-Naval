@@ -11,21 +11,25 @@ class EfeitosSonorosTest {
 
     @Test
     fun `o splash da agua tem volume audivel e nao satura`() {
-        val pico = conferirOnda(EfeitosSonoros.gerarAgua(), duracaoEsperada = 0.45f, saturacaoMaxima = 0.001f)
+        val pico = conferirOnda(
+            EfeitosSonoros.gerarAgua(), duracaoEsperada = 0.45f, saturacaoMaxima = 0.001f, picoMinimo = 0.2f
+        )
 
         // A água é o som "de fundo": tem que ficar mais baixa que a explosão.
-        assertTrue(pico < 0.85f, "a água ficou alta demais (pico $pico)")
+        assertTrue(pico < 0.45f, "a água ficou alta demais (pico $pico)")
     }
 
     @Test
-    fun `a explosao e mais forte que a agua e satura so no impacto`() {
-        val pico = conferirOnda(EfeitosSonoros.gerarExplosao(), duracaoEsperada = 0.9f, saturacaoMaxima = 0.02f)
+    fun `a explosao e mais forte que a agua e nao satura`() {
+        val pico = conferirOnda(
+            EfeitosSonoros.gerarExplosao(), duracaoEsperada = 0.9f, saturacaoMaxima = 0.001f, picoMinimo = 0.2f
+        )
 
-        assertTrue(pico > 0.85f, "a explosão ficou fraca demais (pico $pico)")
+        assertTrue(pico > 0.45f, "a explosão ficou fraca demais (pico $pico)")
     }
 
     // Confere o básico da onda e devolve o pico dela.
-    private fun conferirOnda(onda: ByteArray, duracaoEsperada: Float, saturacaoMaxima: Float): Float {
+    private fun conferirOnda(onda: ByteArray, duracaoEsperada: Float, saturacaoMaxima: Float, picoMinimo: Float): Float {
         val amostras = paraAmostras(onda)
 
         assertTrue(
@@ -35,7 +39,7 @@ class EfeitosSonorosTest {
 
         // Começa alto o bastante pra ser ouvido...
         val pico = amostras.maxOf { abs(it) }
-        assertTrue(pico > 0.5f, "volume baixo demais (pico $pico)")
+        assertTrue(pico > picoMinimo, "volume baixo demais (pico $pico)")
 
         // ...e termina em silêncio, senão o som cortaria com um estalo.
         val cauda = amostras.takeLast(200).maxOf { abs(it) }

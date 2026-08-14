@@ -74,9 +74,9 @@ actual object EfeitosSonoros {
             val frequencia = 500f - 370f * (tempo / duracao)
             val plop = sin(2.0 * PI * frequencia * tempo).toFloat() * exp(-14f * tempo)
 
-            // O 0.42 do fim é o volume: a água é o som "de fundo" do jogo, então ela
-            // fica de propósito mais baixa que a explosão.
-            (chiado * 1.6f * exp(-9f * tempo) + plop * 0.5f) * 0.42f
+            // O 0.21 do fim é o volume (metade do original): a água é o som "de fundo"
+            // do jogo, então ela fica de propósito mais baixa que a explosão.
+            (chiado * 1.6f * exp(-9f * tempo) + plop * 0.5f) * 0.21f
         }
     }
 
@@ -93,9 +93,9 @@ actual object EfeitosSonoros {
             val frequencia = 90f - 55f * (tempo / duracao)
             val corpo = sin(2.0 * PI * frequencia * tempo).toFloat() * exp(-3.5f * tempo)
 
-            // Bem mais alta que a água: é o som de recompensa do acerto. Nesse volume
-            // o estouro inicial satura um pouquinho, o que só ajuda a sujar o estrondo.
-            (estrondo * 6f * exp(-4.5f * tempo) + corpo * 0.8f) * 0.8f
+            // Bem mais alta que a água: é o som de recompensa do acerto. 0.4 é a
+            // metade do volume original.
+            (estrondo * 6f * exp(-4.5f * tempo) + corpo * 0.8f) * 0.4f
         }
     }
 
