@@ -62,6 +62,28 @@ class PosicionamentoManualTest {
     }
 
     @Test
+    fun `navio nao pode nem tocar outro na diagonal`() {
+        val tabuleiro = EstadoTabuleiro(TipoMapa.LAGOA, sortearNoInicio = false)
+        val primeiro = assertNotNull(tabuleiro.proximaEmbarcacao())
+        // Navio de 4 casas na linha 2, colunas 2 a 5.
+        assertTrue(tabuleiro.colocar(primeiro, linha = 2, coluna = 2, horizontal = true))
+
+        val segundo = assertNotNull(tabuleiro.proximaEmbarcacao())
+
+        // Só tocaria a quina do primeiro navio (linha 1, coluna 1) — ainda assim não pode.
+        assertFalse(tabuleiro.podeColocar(1, 1, segundo.tamanho, horizontal = true))
+        assertFalse(tabuleiro.colocar(segundo, 1, 1, horizontal = true))
+
+        // Mesma coisa do outro lado (linha 3, coluna 5, encostando na quina inferior direita).
+        assertFalse(tabuleiro.podeColocar(3, 5, segundo.tamanho, horizontal = false))
+
+        // Uma casa de distância em qualquer direção já é permitido.
+        assertTrue(tabuleiro.podeColocar(0, 1, segundo.tamanho, horizontal = true))
+
+        assertEquals(segundo, tabuleiro.proximaEmbarcacao())
+    }
+
+    @Test
     fun `recomecar apaga a frota inteira`() {
         val tabuleiro = EstadoTabuleiro(TipoMapa.POCA, sortearNoInicio = false)
         val navio = assertNotNull(tabuleiro.proximaEmbarcacao())
