@@ -13,19 +13,23 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import org.example.batalha_naval.components.*
 import org.example.batalha_naval.themes.palettes.*
+import org.example.batalha_naval.jogo.ModoPosicionamento
 import org.example.batalha_naval.jogo.TipoMapa
 
 import androidx.compose.ui.graphics.Color
 
-// Recebemos as "ações de clique" como parâmetros! 
+// Recebemos as "ações de clique" como parâmetros!
 // A tela não sabe o que acontece quando clica, ela só avisa o App.kt.
 @Composable
 fun TelaIniciarJogo(
-    onIniciarPartida: (TipoMapa, String) -> Unit,
+    onIniciarPartida: (TipoMapa, String, ModoPosicionamento) -> Unit,
     onVoltarClick: () -> Unit
 ) {
 
     var tabuleiroSelecionado by remember { mutableStateOf("Poça") } // Poça é o valor padrão do modo escolhido.
+
+    // Como a frota do jogador vai pro tabuleiro. A do bot é sempre sorteada.
+    var posicionamentoSelecionado by remember { mutableStateOf(ModoPosicionamento.ALEATORIO) }
 
     PainelDeConteudo(largura = 0.6f, altura = 0.9f, paddingInternoInferior = 8.dp) {
         Text(
@@ -47,6 +51,24 @@ fun TelaIniciarJogo(
                     corFundo = if (tabuleiroSelecionado == opcaoTabuleiro) azulOceano else cinza
                 )
                 Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
+        Text(
+            "Distribuição dos Navios",
+            fontSize = 16.sp,
+            color = azulProfundo,
+            fontWeight = FontWeight.Bold
+        )
+
+        // Aleatória = o jogo sorteia a frota. Escolher = o jogador monta na mão.
+        Row {
+            ModoPosicionamento.entries.forEach { modo ->
+                BotaoAnimado(
+                    onClick = { posicionamentoSelecionado = modo },
+                    texto = modo.nomeExibido,
+                    corFundo = if (posicionamentoSelecionado == modo) azulOceano else cinza
+                )
             }
         }
 
@@ -103,7 +125,7 @@ fun TelaIniciarJogo(
 
         Button (
             // Converte o texto do botão selecionado ("Poça", "Lagoa"...) no tipo de mar e começa a partida.
-            onClick = { onIniciarPartida(TipoMapa.porNome(tabuleiroSelecionado), nomePlayer) },
+            onClick = { onIniciarPartida(TipoMapa.porNome(tabuleiroSelecionado), nomePlayer, posicionamentoSelecionado) },
             enabled = nomePlayer.isNotBlank(),
             modifier = Modifier.padding(top = 16.dp)
             ) {

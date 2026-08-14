@@ -6,7 +6,11 @@ import kotlin.random.Random
 // Guarda TUDO que acontece em um tabuleiro: onde estão os navios,
 // quais casas já foram reveladas e quais embarcações já afundaram.
 // A lógica de sorteio dos navios é a mesma do Tabuleiro.kt do projeto original.
-class EstadoTabuleiro(val tipoMapa: TipoMapa) {
+//
+// O "sortearNoInicio" existe por causa do posicionamento manual: quando o jogador
+// vai escolher onde cada navio fica, o tabuleiro nasce vazio e as embarcações
+// entram uma a uma pelo colocar().
+class EstadoTabuleiro(val tipoMapa: TipoMapa, sortearNoInicio: Boolean = true) {
 
     val tamanho: Int = tipoMapa.tamanho
 
@@ -28,8 +32,12 @@ class EstadoTabuleiro(val tipoMapa: TipoMapa) {
     // Ids das embarcações que já foram totalmente destruídas (também é observável).
     val afundadas = mutableStateListOf<Int>()
 
+    // Ids das embarcações que já estão na grade. Observável, pra tela de posicionamento
+    // se redesenhar sozinha a cada navio colocado.
+    val posicionadas = mutableStateListOf<Int>()
+
     init {
-        posicionarNavios()
+        if (sortearNoInicio) posicionarNavios() else limpar()
     }
 
     // A tela usa isso pra saber qual cor desenhar em cada botãozinho.
@@ -81,6 +89,47 @@ class EstadoTabuleiro(val tipoMapa: TipoMapa) {
     // Soma as casas de navio que ainda não foram acertadas. Usado no cálculo do score final.
     fun celulasDeNaviosRestantes(): Int = vidaDasEmbarcacoes.values.sum()
 
+    // ---------- Posicionamento manual ----------
+
+    // A próxima embarcação que ainda falta colocar. Null = a frota inteira já está no mar.
+    fun proximaEmbarcacao(): Embarcacao? = embarcacoes.firstOrNull { it.id !in posicionadas }
+
+    fun frotaCompleta(): Boolean = posicionadas.size == embarcacoes.size
+
+    // As casas que um navio ocuparia a partir de uma casa inicial. Pode devolver casas
+    // fora do tabuleiro: quem desenha a prévia simplesmente ignora essas.
+    fun casasDoNavio(linha: Int, coluna: Int, tamanhoNavio: Int, horizontal: Boolean): List<Pair<Int, Int>> =
+        (0 until tamanhoNavio).map { k ->
+            if (horizontal) linha to (coluna + k) else (linha + k) to coluna
+        }
+
+    fun podeColocar(linha: Int, coluna: Int, tamanhoNavio: Int, horizontal: Boolean): Boolean =
+        cabeAqui(linha, coluna, tamanhoNavio, horizontal)
+
+    // Coloca uma embarcação na grade. Devolve false se ela não couber ali (ou se já foi colocada).
+    fun colocar(embarcacao: Embarcacao, linha: Int, coluna: Int, horizontal: Boolean): Boolean {
+        if (embarcacao.id in posicionadas) return false
+        if (!cabeAqui(linha, coluna, embarcacao.tamanho, horizontal)) return false
+
+        casasDoNavio(linha, coluna, embarcacao.tamanho, horizontal).forEach { (l, c) ->
+            grade[l][c] = embarcacao.id
+        }
+        posicionadas.add(embarcacao.id)
+        return true
+    }
+
+    // Apaga a frota inteira pra começar a distribuição de novo.
+    fun limparPosicionamento() = limpar()
+
+    // Todas as casas que hoje têm navio. A tela de posicionamento usa isso pra pintar a grade.
+    fun casasOcupadas(): Set<Pair<Int, Int>> = buildSet {
+        for (linha in 0 until tamanho) {
+            for (coluna in 0 until tamanho) {
+                if (grade[linha][coluna] != 0) add(linha to coluna)
+            }
+        }
+    }
+
     // ---------- Sorteio dos navios ----------
 
     private fun posicionarNavios() {
@@ -95,6 +144,7 @@ class EstadoTabuleiro(val tipoMapa: TipoMapa) {
     private fun limpar() {
         for (linha in grade) linha.fill(0)
         afundadas.clear()
+        posicionadas.clear()
         vidaDasEmbarcacoes.clear()
         embarcacoes.forEach { vidaDasEmbarcacoes[it.id] = it.tamanho }
     }
@@ -107,13 +157,7 @@ class EstadoTabuleiro(val tipoMapa: TipoMapa) {
             val linha = Random.nextInt(tamanho)
             val coluna = Random.nextInt(tamanho)
 
-            if (cabeAqui(linha, coluna, embarcacao.tamanho, horizontal)) {
-                for (k in 0 until embarcacao.tamanho) {
-                    if (horizontal) grade[linha][coluna + k] = embarcacao.id
-                    else grade[linha + k][coluna] = embarcacao.id
-                }
-                return true
-            }
+            if (colocar(embarcacao, linha, coluna, horizontal)) return true
         }
 
         return false

@@ -9,6 +9,7 @@ import org.example.batalha_naval.themes.BatalhaNavalTheme
 import org.example.batalha_naval.themes.FundoGradiente
 import org.example.batalha_naval.screens.*
 import org.example.batalha_naval.themes.palettes.*
+import org.example.batalha_naval.jogo.ModoPosicionamento
 import org.example.batalha_naval.jogo.TipoMapa
 
 import org.example.batalha_naval.components.NavegadorAnimado
@@ -31,6 +32,9 @@ fun App( fecharApp: () -> Unit = {} ) {
 
         // Nome digitado na tela de início, usado pra salvar o score no servidor.
         val nomeJogador = remember { mutableStateOf("") }
+
+        // Se a frota do jogador vai ser sorteada ou montada por ele mesmo.
+        val modoPosicionamento = remember { mutableStateOf(ModoPosicionamento.ALEATORIO) }
 
         // Dita a direção do efeito de transição entre telas (de cima para baixo ou de baixo para cima).
         var direcaoAnimacao by remember { mutableStateOf(DirecaoAnimacao.BAIXO_PARA_CIMA) }
@@ -60,9 +64,10 @@ fun App( fecharApp: () -> Unit = {} ) {
                     )
                 } else if (telaAtiva == telaIniciarJogo) {
                     TelaIniciarJogo(
-                        onIniciarPartida = { tipoMapa, nome ->
+                        onIniciarPartida = { tipoMapa, nome, modo ->
                             mapaEscolhido.value = tipoMapa
                             nomeJogador.value = nome
+                            modoPosicionamento.value = modo
                             direcaoAnimacao = DirecaoAnimacao.BAIXO_PARA_CIMA
                             telaAtual.value = telaTabuleiro
                         },
@@ -75,6 +80,7 @@ fun App( fecharApp: () -> Unit = {} ) {
                     TelaTabuleiro(
                         tipoMapa = mapaEscolhido.value,
                         nomeJogador = nomeJogador.value,
+                        modoPosicionamento = modoPosicionamento.value,
                         onVoltarClick = { telaAtual.value = telaIniciarJogo }
                     )
                 } else if (telaAtiva == telaRanking) {
