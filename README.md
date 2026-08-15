@@ -1,57 +1,44 @@
-This is a Kotlin Multiplatform project targeting Desktop (JVM), Server.
+Este é um projeto Kotlin Multiplatform com foco em Desktop (JVM) e Servidor.
 
-* [/app/shared](./app/shared/src) is for code that will be shared across your Compose Multiplatform applications. It
-  contains several subfolders:
-    - [commonMain](./app/shared/src/commonMain/kotlin) is for code that’s common for all targets.
-    - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name. For
-      example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-      the [iosMain](./app/shared/src/iosMain/kotlin) folder would be the right place for such calls. Similarly, if you
-      want to edit the Desktop (JVM) specific part, the [jvmMain](./app/shared/src/jvmMain/kotlin)
-      folder is the appropriate location.
+* O diretório /app/shared é para o código que será compartilhado entre as suas aplicações Compose Multiplatform. Ele contém várias subpastas:
+  * commonMain é para o código que é comum a todos os alvos (plataformas).
 
-* [/core](./core/src) is for the code that will be shared between all targets in the project. The most important
-  subfolder is [commonMain](./core/src/commonMain/kotlin). If preferred, you can add code to the platform-specific
-  folders here too.
+  * As outras pastas são para código Kotlin que será compilado apenas para a plataforma indicada no nome da pasta. Por exemplo, se você quiser usar o CoreCrypto da Apple para a parte iOS do seu app Kotlin, a pasta iosMain seria o lugar certo. Da mesma forma, se você quiser editar a parte específica para Desktop (JVM), a pasta jvmMain é o local apropriado.
 
-* [/server](./server/src/main/kotlin) is for the Ktor server application. It talks to a local MySQL database
-  (`batalha_navalbd`) to save match results and serve the ranking — see the "Database" section below.
+* A pasta [/core](./core/src) é para o código que será compartilhado entre todas as partes do projeto. A subpasta mais importante é a [commonMain](./core/src/commonMain/kotlin). Se preferir, você também pode adicionar código às pastas específicas de plataforma aqui.
 
-### Running the apps
+* A pasta [/server](./server/src/main/kotlin) é destinada à aplicação do servidor Ktor.
 
-Use the run configurations provided by the run widget in your IDE's toolbar. You can also use these commands and
-options:
 
-- Desktop app:
-    - Hot reload: `./gradlew :app:desktopApp:hotRun --auto`
-    - Standard run: `./gradlew :app:desktopApp:run`
+### Rodando as aplicações
+Use as configurações de execução fornecidas pelo widget de execução na barra de ferramentas da sua IDE. Alternativamente, você pode usar os seguintes comandos e opções no terminal (lembre-se de rodar o servidor em uma aba e o jogo em outra):
 
-  The desktop app starts the Ktor server **inside its own process** on launch (port 8080), so this is the only
-  command you need — no second terminal required. If port 8080 is already taken (e.g. another instance of the game,
-  or `:server:run` started manually), the app detects that and simply talks to whatever is already listening there.
-- Server (standalone, e.g. for headless/API-only use): `./gradlew :server:run`
+* Aplicativo Desktop:
 
-### Database
+  * Hot reload (Recarregamento em tempo real): ./gradlew :app:desktopApp:hotRun --auto
+  * Execução padrão: ./gradlew :app:desktopApp:run
 
-MySQL needs to be running and reachable. The schema (`batalha_navalbd` database + `jogadores`/`partidas` tables) is
-created automatically the first time the server starts — you don't need to run
-[sql/batalha_naval.sql](./sql/batalha_naval.sql) by hand, though it's kept in sync as documentation of the schema.
+* Servidor: ./gradlew :server:run
 
-Connection defaults to `root` with no password on `localhost`. If your MySQL needs different credentials, set these
-environment variables before launching (desktop app or server, either one):
+### Rodando os testes
 
-- `BATALHA_NAVAL_DB_URL` (default: `jdbc:mysql://localhost/batalha_navalbd`)
-- `BATALHA_NAVAL_DB_USER` (default: `root`)
-- `BATALHA_NAVAL_DB_PASSWORD` (default: empty)
+Use o botão de execução na margem do editor da sua IDE ou rode os testes usando as tarefas do Gradle no terminal:
 
-If the database is unreachable, the game still runs — you just won't be able to save scores or load the ranking
-until the connection is fixed.
+* Testes do Desktop: ./gradlew :app:shared:jvmTest
+* Testes do Servidor: ./gradlew :server:test
 
-### Running tests
+### Banco de Dados
+O MySQL precisa estar rodando e acessível. O esquema (banco de dados batalha_navalbd + tabelas jogadores/partidas) é criado automaticamente na primeira vez que o servidor é iniciado — você não precisa executar o arquivo sql/batalha_naval.sql manualmente, embora ele seja mantido atualizado como documentação do esquema.
 
-Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
+A conexão padrão utiliza o usuário root sem senha no localhost. Se o seu MySQL exigir credenciais diferentes, configure estas variáveis de ambiente antes de iniciar a aplicação (seja o aplicativo desktop ou o servidor):
 
-- Desktop tests: `./gradlew :app:shared:jvmTest`
-- Server tests: `./gradlew :server:test`
+  * BATALHA_NAVAL_DB_URL (padrão: jdbc:mysql://localhost/batalha_navalbd)
+
+  * BATALHA_NAVAL_DB_USER (padrão: root)
+
+  * BATALHA_NAVAL_DB_PASSWORD (padrão: vazio)
+
+Se o banco de dados estiver inacessível, o jogo continuará funcionando normalmente — você apenas não conseguirá salvar as pontuações ou carregar o ranking até que a conexão seja reestabelecida.
 
 ---
 
